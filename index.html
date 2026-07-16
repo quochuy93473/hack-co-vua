@@ -1,0 +1,651 @@
+  <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Vision Pro - Hack Cờ Vua</title>
+    <!-- Thư viện chessboard.js và chess.js -->
+    <link rel="stylesheet" href="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: #16213e;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            max-width: 750px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #f7971e, #ffd200);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f3460;
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .player-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .fake-title {
+            color: #ffd700;
+            margin-left: 8px;
+            font-weight: bold;
+            text-shadow: 0 0 8px #ffd700;
+        }
+        .security-status {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            background: #1a1a2e;
+            padding: 6px 15px;
+            border-radius: 30px;
+            border: 1px solid #00ff88;
+        }
+        .security-status .safe {
+            color: #00ff88;
+        }
+        .security-status .risk {
+            color: #ff6b6b;
+        }
+        #board {
+            width: 100%;
+            max-width: 560px;
+            margin: 0 auto 15px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .controls button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            background: #0f3460;
+            color: #fff;
+            border: 1px solid #00ff88;
+        }
+        .controls button:hover {
+            transform: scale(1.05);
+            background: #00ff88;
+            color: #000;
+        }
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status-panel {
+            background: #0f3460;
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-top: 10px;
+            border-left: 4px solid #00ff88;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .status-item .label {
+            color: #aaa;
+        }
+        .status-item .value {
+            color: #fff;
+            font-weight: bold;
+        }
+        .arrow-hint {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #555;
+        }
+        .warning {
+            color: #ff6b6b;
+            font-size: 12px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        /* Điều chỉnh responsive */
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .player-info { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .security-status { align-self: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>♚ Chess Vision Pro</h1>
+        <div class="subtitle">Hack thông minh · Mũi tên gợi ý · Anti-Ban tích hợp</div>
+
+        <!-- Thông tin người chơi + Title ảo -->
+        <div class="player-info">
+            <span class="player-name">
+                Người chơi: <strong id="playerName">Bạn</strong>
+                <span class="fake-title" id="fakeTitle">(GM)</span>
+            </span>
+            <div class="security-status">
+                <span class="safe">🛡️ Anti-Ban: BẬT</span>
+                <span class="safe">🔒 An toàn: 98%</span>
+                <span id="riskIndicator" class="safe">⚡ Rủi ro thấp</span>
+            </div>
+        </div>
+
+        <!-- Bàn cờ -->
+        <div id="board" style="position: relative;"></div>
+
+        <!-- Các nút điều khiển -->
+        <div class="controls">
+            <button id="btnGetMove">🎯 Gợi ý nước đi</button>
+            <button id="btnAutoPlay">▶️ Tự động chơi</button>
+            <button id="btnStop">⏹️ Dừng</button>
+            <button id="btnReset">🔄 Bàn mới</button>
+        </div>
+
+        <!-- Bảng trạng thái -->
+        <div class="status-panel">
+            <div class="status-item">
+                <span class="label">Lượt hiện tại:</span>
+                <span class="value" id="turnDisplay">Trắng</span>
+            </div>
+            <div class="status-item">
+                <span class="label">FEN:</span>
+                <span class="value" id="fenDisplay" style="font-size:12px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">r1bqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Nước đi tốt nhất:</span>
+                <span class="value" id="bestMoveDisplay">—</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Độ sâu:</span>
+                <span class="value" id="depthDisplay">8</span>
+            </div>
+        </div>
+
+        <div class="warning">⚠️ Sử dụng với mục đích học tập. Chess.com có thể phát hiện và khóa tài khoản.</div>
+        <div class="footer">Phiên bản 3.0 · Chống phát hiện nâng cao</div>
+    </div>
+
+    <!-- Thư viện -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.0.0-beta.6/chess.min.js"></script>
+
+    <script>
+        // ============================================================
+        //  PHẦN CHÍNH - TOÀN BỘ LOGIC HACK (GIẢ LẬP)
+        // ============================================================
+
+        $(document).ready(function() {
+            // --- CẤU HÌNH ---
+            const CONFIG = {
+                eloFake: 1800,               // Elo ảo hiển thị
+                blunderRate: 0.12,            // Tỉ lệ chọn nước kém
+                delayMin: 1000,
+                delayMax: 3000,
+                arrowColor: '#00ff88',
+                depthMin: 8,
+                depthMax: 14,
+                fakeTitle: 'GM'
+            };
+
+            // --- BIẾN TOÀN CỤC ---
+            let board = null;
+            let chess = new Chess();
+            let isAutoPlaying = false;
+            let autoInterval = null;
+            let currentFen = chess.fen();
+            let bestMove = null;
+            let moveHistory = [];
+
+            // --- KHỞI TẠO BÀN CỜ ---
+            board = Chessboard('board', {
+                position: 'start',
+                draggable: true,
+                onDrop: function(source, target) {
+                    const move = chess.move({ from: source, to: target, promotion: 'q' });
+                    if (move === null) return 'snapback';
+                    updateStatus();
+                    // Sau khi người dùng di chuyển, tự động vẽ mũi tên cho nước vừa đi
+                    drawArrow(source, target);
+                    // Nếu đang auto, vẫn tiếp tục
+                    return 'snap';
+                },
+                onSnapEnd: function() {
+                    // Có thể cập nhật thêm
+                }
+            });
+
+            // --- HÀM VẼ MŨI TÊN (SVG) ---
+            function drawArrow(from, to, color = CONFIG.arrowColor) {
+                // Xóa mũi tên cũ
+                $('#board svg.arrow-hint').remove();
+
+                const boardEl = document.getElementById('board');
+                const boardRect = boardEl.getBoundingClientRect();
+                // Lấy tọa độ các ô từ chessboardjs
+                const squareSize = boardEl.querySelector('.square-55d63').getBoundingClientRect().width;
+                const files = 'abcdefgh';
+                const ranks = '87654321';
+                const fileFrom = files.indexOf(from[0]);
+                const rankFrom = ranks.indexOf(from[1]);
+                const fileTo = files.indexOf(to[0]);
+                const rankTo = ranks.indexOf(to[1]);
+
+                // Tính pixel (gốc trên trái của ô)
+                const x1 = fileFrom * squareSize + squareSize/2;
+                const y1 = rankFrom * squareSize + squareSize/2;
+                const x2 = fileTo * squareSize + squareSize/2;
+                const y2 = rankTo * squareSize + squareSize/2;
+
+                // Tạo SVG overlay
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'arrow-hint');
+                svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100;';
+                svg.setAttribute('viewBox', `0 0 ${boardEl.offsetWidth} ${boardEl.offsetHeight}`);
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('stroke', color);
+                line.setAttribute('stroke-width', '4');
+                line.setAttribute('stroke-dasharray', '6,4');
+                line.setAttribute('marker-end', 'url(#arrowHead)');
+
+                // Định nghĩa đầu mũi tên
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', 'arrowHead');
+                marker.setAttribute('markerWidth', '10');
+                marker.setAttribute('markerHeight', '7');
+                marker.setAttribute('refX', '9');
+                marker.setAttribute('refY', '3.5');
+                marker.setAttribute('orient', 'auto');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '0 0, 10 3.5, 0 7');
+                poly.setAttribute('fill', color);
+                marker.appendChild(poly);
+                defs.appendChild(marker);
+                svg.appendChild(defs);
+                svg.appendChild(line);
+
+                boardEl.appendChild(svg);
+
+                // Tự xóa sau 5 giây
+                setTimeout(() => {
+                    $('#board svg.arrow-hint').remove();
+                }, 5000);
+            }
+
+            // --- HÀM ĐÁNH GIÁ VỊ TRÍ (HEURISTIC) ---
+            function evaluatePosition(board) {
+                const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 100 };
+                let score = 0;
+                const boardObj = board.board();
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const piece = boardObj[i][j];
+                        if (piece) {
+                            const val = pieceValues[piece.type] || 0;
+                            const sign = (piece.color === 'w') ? 1 : -1;
+                            score += sign * val;
+                            // Thưởng trung tâm
+                            const square = String.fromCharCode(97 + j) + (8 - i);
+                            if (['d4','e4','d5','e5'].includes(square)) score += sign * 0.3;
+                        }
+                    }
+                }
+                return score;
+            }
+
+            // --- CHỌN NƯỚC ĐI (CÓ BLUNDER) ---
+            function getBestMove(fen, depth) {
+                const board = new Chess(fen);
+                const moves = board.moves({ verbose: true });
+                if (moves.length === 0) return null;
+
+                // Đánh giá từng nước (tìm kiếm đơn giản)
+                const scored = moves.map(m => {
+                    const temp = new Chess(fen);
+                    temp.move(m);
+                    let score = evaluatePosition(temp);
+                    // Thêm yếu tố vị trí
+                    return { move: m, score };
+                });
+
+                scored.sort((a, b) => b.score - a.score);
+                let best = scored[0];
+
+                // Blunder
+                if (Math.random() < CONFIG.blunderRate && scored.length > 1) {
+                    const topN = Math.min(3, scored.length);
+                    const idx = Math.floor(Math.random() * (topN - 1)) + 1;
+                    if (idx < scored.length) {
+                        best = scored[idx];
+                    }
+                }
+
+                // Nếu chênh lệch nhỏ, có thể chọn nước thứ 2
+                if (scored.length > 1 && (scored[0].score - scored[1].score) < 0.5 && Math.random() < 0.3) {
+                    best = scored[1];
+                }
+
+                return best.move;
+            }
+
+            // --- CẬP NHẬT TRẠNG THÁI GIAO DIỆN ---
+            function updateStatus() {
+                const fen = chess.fen();
+                currentFen = fen;
+                $('#fenDisplay').text(fen);
+                const turn = chess.turn() === 'w' ? 'Trắng' : 'Đen';
+                $('#turnDisplay').text(turn);
+
+                // Cập nhật nước đi tốt nhất (nếu có)
+                const move = getBestMove(fen, 8);
+                if (move) {
+                    bestMove = move;
+                    $('#bestMoveDisplay').text(move.san || move.uci);
+                } else {
+                    $('#bestMoveDisplay').text('—');
+                }
+
+                // Cập nhật độ sâu ngẫu nhiên
+                const depth = Math.floor(Math.random() * (CONFIG.depthMax - CONFIG.depthMin + 1)) + CONFIG.depthMin;
+                $('#depthDisplay').text(depth);
+            }
+
+            // --- THỰC HIỆN NƯỚC ĐI TỰ ĐỘNG ---
+            function makeAutoMove() {
+                if (!isAutoPlaying) return;
+                const fen = chess.fen();
+                const move = getBestMove(fen, 8);
+                if (!move) {
+                    stopAutoPlay();
+                    return;
+                }
+                const result = chess.move(move);
+                if (result) {
+                    board.position(chess.fen());
+                    drawArrow(result.from, result.to);
+                    updateStatus();
+                    // Lưu lịch sử
+                    moveHistory.push(result);
+                    // Kiểm tra kết thúc ván
+                    if (chess.game_over()) {
+                        stopAutoPlay();
+                        alert('Ván cờ kết thúc!');
+                    }
+                }
+            }
+
+            // --- BẬT TỰ ĐỘNG ---
+            function startAutoPlay() {
+                if (isAutoPlaying) return;
+                isAutoPlaying = true;
+                $('#btnAutoPlay').prop('disabled', true);
+                $('#btnGetMove').prop('disabled', true);
+                // Chạy ngay lần đầu
+                const delay = Math.floor(Math.random() * (CONFIG.delayMax - CONFIG.delayMin + 1)) + CONFIG.delayMin;
+                setTimeout(() => {
+                    if (isAutoPlaying) makeAutoMove();
+                }, delay);
+                // Lặp
+                autoInterval = setInterval(() => {
+                    if (isAutoPlaying) {
+                        const d = Math.floor(Math.random() * (CONFIG.delayMax - CONFIG.delayMin + 1)) + CONFIG.delayMin;
+                        setTimeout(() => {
+                            if (isAutoPlaying) makeAutoMove();
+                        }, d);
+                    }
+                }, CONFIG.delayMax + 500);
+            }
+
+            function stopAutoPlay() {
+                isAutoPlaying = false;
+                if (autoInterval) {
+                    clearInterval(autoInterval);
+                    autoInterval = null;
+                }
+                $('#btnAutoPlay').prop('disabled', false);
+                $('#btnGetMove').prop('disabled', false);
+            }
+
+            // --- RESET BÀN CỜ ---
+            function resetBoard() {
+                stopAutoPlay();
+                chess = new Chess();
+                board.position('start');
+                moveHistory = [];
+                $('#board svg.arrow-hint').remove();
+                updateStatus();
+            }
+
+            // --- LẤY NƯỚC ĐI GỢI Ý (CHỈ HIỂN THỊ MŨI TÊN) ---
+            function getSuggestion() {
+                const fen = chess.fen();
+                const move = getBestMove(fen, 8);
+                if (move) {
+                    drawArrow(move.from, move.to, '#ffaa00');
+                    $('#bestMoveDisplay').text(move.san || move.uci);
+                } else {
+                    alert('Không có nước đi hợp lệ.');
+                }
+            }
+
+            // --- GÁN SỰ KIỆN CHO NÚT ---
+            $('#btnGetMove').click(getSuggestion);
+            $('#btnAutoPlay').click(startAutoPlay);
+            $('#btnStop').click(stopAutoPlay);
+            $('#btnReset').click(resetBoard);
+
+            // --- KHỞI TẠO LẦN ĐẦU ---
+            updateStatus();
+
+            // Mô phỏng tên người chơi và title ảo
+            $('#playerName').text('Bạn (Người chơi)');
+            // Title ảo đã có sẵn
+
+            // Cập nhật trạng thái anti-ban (mô phỏng)
+            setInterval(() => {
+                const risk = Math.floor(Math.random() * 5) + 95; // 95-99%
+                $('#riskIndicator').text(`⚡ Rủi ro: ${risk}% an toàn`);
+                if (risk < 97) {
+                    $('#riskIndicator').css('color', '#ff6b6b');
+                } else {
+                    $('#riskIndicator').css('color', '#00ff88');
+                }
+            }, 5000);
+
+            // Thông báo
+            console.log('Chess Vision Pro đã sẵn sàng. Nhấn ESC để bật/tắt (giả lập).');
+            // Phím ESC để bật/tắt auto (giả)
+            $(document).keydown(function(e) {
+                if (e.key === 'Escape') {
+                    if (isAutoPlaying) {
+                        stopAutoPlay();
+                    } else {
+                        startAutoPlay();
+                    }
+                }
+            });
+
+            // Cập nhật FEN khi board thay đổi
+            // board đã có onDrop
+        });
+    </script>
+</body>
+</html>HienTai);
+            }
+            if (!mauCuaToi) {
+                mauCuaToi = xacDinhMau();
+                if (!mauCuaToi) return;
+            }
+
+            const fen = layFen();
+            if (!fen || fen === fenTruoc) return;
+            fenTruoc = fen;
+
+            const luot = fen.split(' ')[1];
+            if (luot !== mauCuaToi) return;
+
+            // Tính toán tham số theo Elo
+            const params = tinhThamSoTheoElo(eloHienTai);
+            const delayMin = params.delayMin;
+            const delayMax = params.delayMax;
+            const delay = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+
+            // Thêm một chút biến động: đôi khi chờ lâu hơn (nếu ván phức tạp)
+            const board = new Chess(fen);
+            const moveCount = board.moves().length;
+            if (moveCount > 20) {
+                // Ván phức tạp, thêm 1-2 giây
+                const extra = Math.floor(Math.random() * 2000);
+                setTimeout(async () => {
+                    if (!dangHoatDong) return;
+                    const result = await chonNuocDiCuoiCung(fen, eloHienTai);
+                    if (result && result.uci) {
+                        thucHienNuocDi(result.uci);
+                    }
+                }, delay + extra);
+            } else {
+                setTimeout(async () => {
+                    if (!dangHoatDong) return;
+                    const result = await chonNuocDiCuoiCung(fen, eloHienTai);
+                    if (result && result.uci) {
+                        thucHienNuocDi(result.uci);
+                    }
+                }, delay);
+            }
+        }, 2000); // kiểm tra mỗi 2 giây
+    }
+
+    // ============================================================
+    //  KHỞI TẠO
+    // ============================================================
+    async function khoiTao() {
+        // Tải chess.js
+        await taiChessJs();
+        if (typeof Chess === 'undefined') {
+            console.warn('[ChessBot] Chess.js chưa sẵn sàng, thử lại sau.');
+            setTimeout(khoiTao, 3000);
+            return;
+        }
+
+        // Tải Stockfish (không bắt buộc)
+        await taiStockfish();
+        if (!StockfishWorker) {
+            console.warn('[ChessBot] Stockfish không khả dụng, chuyển sang heuristic.');
+        } else {
+            console.log('[ChessBot] Stockfish đã sẵn sàng.');
+        }
+
+        daTaiXong = true;
+        tenNguoiDung = layTenNguoiDung();
+        if (tenNguoiDung) chenTitleAo(eloHienTai);
+
+        // Quan sát DOM để cập nhật title
+        const observer = new MutationObserver(() => {
+            const ten = layTenNguoiDung();
+            if (ten && ten !== tenNguoiDung) {
+                tenNguoiDung = ten;
+                chenTitleAo(eloHienTai);
+            }
+            if (!mauCuaToi) mauCuaToi = xacDinhMau();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Bật/tắt bằng phím ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                dangHoatDong = !dangHoatDong;
+                console.log(`[ChessBot] Trạng thái: ${dangHoatDong ? 'BẬT' : 'TẮT'}`);
+                if (!dangHoatDong) {
+                    document.querySelectorAll('.arrow-hint-chess').forEach(el => el.remove());
+                }
+            }
+        });
+
+        // Popup menu để thay đổi Elo (đơn giản: prompt)
+        // Có thể thêm nút trên trang, nhưng đơn giản là dùng prompt khi gõ phím E
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'e' && e.ctrlKey) {
+                const newElo = prompt('Nhập Elo ảo muốn giả lập (800-2800):', eloHienTai);
+                if (newElo !== null) {
+                    const val = parseInt(newElo);
+                    if (val >= 800 && val <= 2800) {
+                        eloHienTai = val;
+                        chenTitleAo(eloHienTai);
+                        console.log(`[ChessBot] Elo đã đổi thành ${eloHienTai}`);
+                    } else {
+                        alert('Elo phải từ 800 đến 2800.');
+                    }
+                }
+            }
+        });
+
+        batDauTheoDoi();
+        console.log('[ChessBot] Đã khởi động. ESC: bật/tắt, Ctrl+E: đổi Elo.');
+    }
+
+    // Chạy khi DOM sẵn sàng
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        khoiTao();
+    } else {
+        document.addEventListener('DOMContentLoaded', khoiTao);
+    }
+})();
